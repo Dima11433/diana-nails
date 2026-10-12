@@ -1,0 +1,743 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Диана Морозова — мастер маникюра</title>
+
+  <!-- Fonts (Cormorant Garamond + Manrope поддерживают кириллицу) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400;1,500;1,600&family=Manrope:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Tech stack (CDN-only) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/framer-motion@11.11.17/dist/framer-motion.js"></script>
+  <script>window.Motion = window.Motion || window.FramerMotion;</script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            heading: ["'Cormorant Garamond'", "serif"],
+            body: ["'Manrope'", "sans-serif"],
+          },
+          borderRadius: { DEFAULT: "9999px" },
+        },
+      },
+    };
+  </script>
+
+  <style>
+    html { scroll-behavior: smooth; }
+    body {
+      background: #f2689a;
+      color: #fff;
+      overflow-x: hidden;
+    }
+    /* Розовый фон с мягкими живыми пятнами */
+    .pink-bg {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(60% 50% at 15% 10%, #ffb6d0 0%, transparent 60%),
+        radial-gradient(50% 50% at 85% 25%, #ff86b3 0%, transparent 60%),
+        radial-gradient(70% 60% at 50% 100%, #d93b78 0%, transparent 65%),
+        linear-gradient(160deg, #ff9cc1 0%, #f2689a 45%, #e04c86 100%);
+    }
+    .blob {
+      position: absolute; border-radius: 9999px; filter: blur(80px); opacity: .55;
+      animation: float 18s ease-in-out infinite;
+    }
+    @keyframes float {
+      0%,100% { transform: translate(0,0) scale(1); }
+      33% { transform: translate(60px,-40px) scale(1.1); }
+      66% { transform: translate(-40px,50px) scale(.95); }
+    }
+    #bottles {
+      position: fixed; inset: 0; width: 100vw; height: 100vh;
+      z-index: 1; pointer-events: none;
+    }
+    #root { position: relative; z-index: 10; }
+
+    /* ---------- Liquid glass ---------- */
+    .liquid-glass {
+      background: rgba(255,255,255,0.08);
+      background-blend-mode: luminosity;
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      border: none;
+      box-shadow: inset 0 1px 1px rgba(255,255,255,0.1);
+      position: relative;
+      overflow: hidden;
+    }
+    .liquid-glass::before {
+      content: "";
+      position: absolute; inset: 0;
+      border-radius: inherit;
+      padding: 1.4px;
+      background: linear-gradient(180deg,
+        rgba(255,255,255,0.45) 0%,
+        rgba(255,255,255,0.15) 20%,
+        rgba(255,255,255,0) 40%,
+        rgba(255,255,255,0) 60%,
+        rgba(255,255,255,0.15) 80%,
+        rgba(255,255,255,0.45) 100%);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+    .liquid-glass-strong {
+      background: rgba(255,255,255,0.12);
+      background-blend-mode: luminosity;
+      backdrop-filter: blur(50px);
+      -webkit-backdrop-filter: blur(50px);
+      border: none;
+      box-shadow: 4px 4px 4px rgba(0,0,0,0.05), inset 0 1px 1px rgba(255,255,255,0.15);
+      position: relative;
+      overflow: hidden;
+    }
+    .liquid-glass-strong::before {
+      content: "";
+      position: absolute; inset: 0;
+      border-radius: inherit;
+      padding: 1.4px;
+      background: linear-gradient(180deg,
+        rgba(255,255,255,0.5) 0%,
+        rgba(255,255,255,0.2) 20%,
+        rgba(255,255,255,0) 40%,
+        rgba(255,255,255,0) 60%,
+        rgba(255,255,255,0.2) 80%,
+        rgba(255,255,255,0.5) 100%);
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+    .text-shadow-soft { text-shadow: 0 2px 30px rgba(150, 20, 70, .25); }
+  </style>
+</head>
+<body>
+  <!-- Фон -->
+  <div class="pink-bg">
+    <div class="blob" style="width:420px;height:420px;left:-80px;top:20%;background:#ffd1e1"></div>
+    <div class="blob" style="width:520px;height:520px;right:-120px;top:50%;background:#ff4f8f;animation-delay:-6s"></div>
+    <div class="blob" style="width:380px;height:380px;left:40%;top:-120px;background:#ffc0d6;animation-delay:-11s"></div>
+  </div>
+
+  <!-- 3D лаки по бокам -->
+  <canvas id="bottles"></canvas>
+
+  <div id="root"></div>
+
+  <!-- ================= 3D: флакончики лака (Three.js) ================= -->
+  <script type="importmap">
+    { "imports": {
+        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+    } }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+    import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+
+    const canvas = document.getElementById('bottles');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.1;
+    renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+    const scene = new THREE.Scene();
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+    const camera = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 0.1, 100);
+    camera.position.set(0, 0, 14);
+
+    scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+    const key = new THREE.DirectionalLight(0xffffff, 2.2); key.position.set(4, 6, 8); scene.add(key);
+    const rim = new THREE.DirectionalLight(0xff9cc8, 2.5); rim.position.set(-6, -2, -4); scene.add(rim);
+
+    // ---- Материалы ----
+    const glassMat = new THREE.MeshPhysicalMaterial({
+      color: 0xffffff, metalness: 0, roughness: 0.04,
+      transparent: true, opacity: 0.28, clearcoat: 1, clearcoatRoughness: 0.02,
+      envMapIntensity: 2.2, depthWrite: false, side: THREE.FrontSide,
+    });
+    const goldMat = new THREE.MeshPhysicalMaterial({ color: 0xf3c98b, metalness: 1, roughness: 0.22, clearcoat: 1 });
+    const blackMat = new THREE.MeshPhysicalMaterial({ color: 0x141014, metalness: 0.2, roughness: 0.18, clearcoat: 1, clearcoatRoughness: 0.05 });
+    const whiteCapMat = new THREE.MeshPhysicalMaterial({ color: 0xfff3f7, metalness: 0, roughness: 0.25, clearcoat: 1 });
+
+    function polishMat(hex, shimmer = false) {
+      return new THREE.MeshPhysicalMaterial({
+        color: new THREE.Color(hex), metalness: shimmer ? 0.55 : 0.05, roughness: shimmer ? 0.28 : 0.12,
+        clearcoat: 1, clearcoatRoughness: 0.03, sheen: 1, sheenColor: new THREE.Color(0xffffff), envMapIntensity: 1.4,
+      });
+    }
+
+    // ---- Флакон: квадратный / круглый / высокий ----
+    function makeBottle({ color, type = 'square', cap = 'black', shimmer = false }) {
+      const g = new THREE.Group();
+      let bodyH;
+      if (type === 'round') {
+        bodyH = 1.5;
+        const liquid = new THREE.Mesh(new THREE.SphereGeometry(0.72, 48, 32), polishMat(color, shimmer));
+        liquid.scale.set(1, 0.95, 1); liquid.position.y = -0.04;
+        const glass = new THREE.Mesh(new THREE.SphereGeometry(0.82, 48, 32), glassMat);
+        glass.renderOrder = 2;
+        g.add(liquid, glass);
+      } else {
+        const w = type === 'tall' ? 1.0 : 1.35, h = type === 'tall' ? 1.9 : 1.5, d = type === 'tall' ? 1.0 : 0.95;
+        bodyH = h;
+        const liquid = new THREE.Mesh(new RoundedBoxGeometry(w - 0.22, h - 0.3, d - 0.22, 6, 0.2), polishMat(color, shimmer));
+        liquid.position.y = -0.08;
+        const glass = new THREE.Mesh(new RoundedBoxGeometry(w, h, d, 8, 0.28), glassMat);
+        glass.renderOrder = 2;
+        g.add(liquid, glass);
+      }
+      const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.32, 0.22, 32), glassMat);
+      neck.position.y = bodyH / 2 + 0.08; neck.renderOrder = 2;
+      const ring = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.1, 48), goldMat);
+      ring.position.y = bodyH / 2 + 0.22;
+      const capH = type === 'tall' ? 1.5 : 1.7;
+      const capMat = cap === 'gold' ? goldMat : cap === 'white' ? whiteCapMat : blackMat;
+      const capMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.36, capH, 48), capMat);
+      capMesh.position.y = bodyH / 2 + 0.27 + capH / 2;
+      const capTop = new THREE.Mesh(new THREE.SphereGeometry(0.3, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), capMat);
+      capTop.scale.y = 0.25; capTop.position.y = bodyH / 2 + 0.27 + capH;
+      g.add(neck, ring, capMesh, capTop);
+
+      // Центрируем
+      const box = new THREE.Box3().setFromObject(g);
+      const c = box.getCenter(new THREE.Vector3());
+      g.children.forEach(m => m.position.sub(c));
+      const wrap = new THREE.Group(); wrap.add(g);
+      return wrap;
+    }
+
+    // side: -1 слева, 1 справа; y: доля от половины высоты экрана
+    const defs = [
+      { side: -1, y: 0.55, z: 0.5, color: '#ff1f66', type: 'square', cap: 'black' },
+      { side: -1, y: -0.05, z: -1.5, color: '#f7c6d4', type: 'round', cap: 'gold' },
+      { side: -1, y: -0.65, z: 1.0, color: '#7d1035', type: 'tall', cap: 'gold' },
+      { side: 1, y: 0.6, z: -1.0, color: '#fff0f4', type: 'tall', cap: 'white', shimmer: true },
+      { side: 1, y: 0.0, z: 1.0, color: '#d61d5f', type: 'square', cap: 'gold', shimmer: true },
+      { side: 1, y: -0.62, z: -0.5, color: '#e9a990', type: 'round', cap: 'black' },
+    ];
+    const bottles = defs.map((d, i) => {
+      const b = makeBottle(d);
+      b.userData = { ...d, phase: i * 1.37, spin: (i % 2 ? -1 : 1) * (0.25 + (i % 3) * 0.08) };
+      b.rotation.z = d.side * 0.25;
+      scene.add(b);
+      return b;
+    });
+
+    // Блёстки / кристаллы
+    const gems = [];
+    const gemGeo = new THREE.OctahedronGeometry(0.12, 0);
+    const gemMats = [
+      new THREE.MeshPhysicalMaterial({ color: 0xffffff, metalness: 1, roughness: 0.05, envMapIntensity: 3 }),
+      new THREE.MeshPhysicalMaterial({ color: 0xffb3cf, metalness: 1, roughness: 0.1, envMapIntensity: 3 }),
+      goldMat,
+    ];
+    for (let i = 0; i < 26; i++) {
+      const m = new THREE.Mesh(gemGeo, gemMats[i % 3]);
+      m.userData = {
+        side: i % 2 ? 1 : -1, y: Math.random() * 2 - 1, z: Math.random() * 4 - 3,
+        off: Math.random() * 2.2, phase: Math.random() * 10, s: 0.5 + Math.random() * 1.1,
+      };
+      m.scale.setScalar(m.userData.s);
+      scene.add(m); gems.push(m);
+    }
+
+    // ---- Взаимодействие ----
+    const mouse = { x: 0, y: 0, tx: 0, ty: 0 };
+    addEventListener('pointermove', e => {
+      mouse.tx = (e.clientX / innerWidth) * 2 - 1;
+      mouse.ty = (e.clientY / innerHeight) * 2 - 1;
+    });
+    let lastScroll = scrollY, scrollVel = 0;
+
+    function resize() {
+      renderer.setSize(innerWidth, innerHeight, false);
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+    }
+    addEventListener('resize', resize); resize();
+
+    const clock = new THREE.Clock();
+    function tick() {
+      const t = clock.getElapsedTime();
+      mouse.x += (mouse.tx - mouse.x) * 0.05;
+      mouse.y += (mouse.ty - mouse.y) * 0.05;
+      const sv = scrollY - lastScroll; lastScroll = scrollY;
+      scrollVel += (sv - scrollVel) * 0.1;
+
+      const halfH = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.position.z;
+      const halfW = halfH * camera.aspect;
+      const mobile = camera.aspect < 0.85;
+      const scale = mobile ? 0.5 : Math.min(1, 0.65 + camera.aspect * 0.2);
+      const edge = mobile ? 0.7 : 1.7;
+
+      bottles.forEach(b => {
+        const u = b.userData;
+        b.scale.setScalar(scale);
+        b.position.x = u.side * (halfW - edge) + Math.sin(t * 0.6 + u.phase) * 0.15 + mouse.x * 0.35;
+        b.position.y = u.y * halfH * 0.85 + Math.sin(t * 0.9 + u.phase) * 0.28 - mouse.y * 0.25 + scrollVel * 0.01 * u.side;
+        b.position.z = u.z;
+        b.rotation.y += 0.006 * u.spin * 2 + scrollVel * 0.004;
+        b.rotation.x = Math.sin(t * 0.7 + u.phase) * 0.18 + mouse.y * 0.25;
+        b.rotation.z = u.side * 0.22 + Math.cos(t * 0.5 + u.phase) * 0.08 - mouse.x * 0.15;
+      });
+      gems.forEach(g => {
+        const u = g.userData;
+        g.position.x = u.side * (halfW - edge * 0.6 - u.off) + mouse.x * 0.6;
+        g.position.y = ((u.y * halfH + t * 0.25 * u.s + 100 * halfH) % (2 * halfH)) - halfH;
+        g.position.z = u.z;
+        g.rotation.x = t * u.s; g.rotation.y = t * 1.3 * u.s;
+      });
+
+      renderer.render(scene, camera);
+      requestAnimationFrame(tick);
+    }
+    tick();
+  </script>
+
+  <!-- ================= React App ================= -->
+  <script type="text/babel" data-presets="react">
+    // Отключаем безвредные dev-предупреждения о key в списках
+    const _err = console.error;
+    console.error = (...a) => { if (typeof a[0] === 'string' && a[0].includes('unique "key"')) return; _err(...a); };
+
+    const { useEffect, useRef, useState } = React;
+    const { motion, useMotionValue, useSpring, useTransform } = window.Motion;
+
+    /* ---------------- Иконки ---------------- */
+    const ArrowUpRight = ({ className = "h-5 w-5" }) => (
+      <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M7 17L17 7" /><path d="M7 7h10v10" />
+      </svg>
+    );
+    const Play = ({ className = "h-4 w-4" }) => (
+      <svg className={className} viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4" /></svg>
+    );
+    const HeartIcon = () => (
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z" />
+      </svg>
+    );
+    const ClockIcon = () => (
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" />
+      </svg>
+    );
+    const StarIcon = ({ className = "h-3.5 w-3.5" }) => (
+      <svg className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z" /></svg>
+    );
+    // Иконки услуг (fill currentColor)
+    const PolishIcon = () => (
+      <svg className="h-6 w-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M10 2h4v6h-4zM9 9h6v2H9zM7 12a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-8Z" />
+      </svg>
+    );
+    const NailIcon = () => (
+      <svg className="h-6 w-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2c3.3 0 6 2.7 6 6v8a6 6 0 0 1-12 0V8c0-3.3 2.7-6 6-6Zm0 2a4 4 0 0 0-4 4v1h8V8a4 4 0 0 0-4-4Z" />
+      </svg>
+    );
+    const SparkleIcon = () => (
+      <svg className="h-6 w-6 text-white" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2l1.9 6.1L20 10l-6.1 1.9L12 18l-1.9-6.1L4 10l6.1-1.9L12 2Zm7 12 .9 2.6 2.6.9-2.6.9L19 21l-.9-2.6-2.6-.9 2.6-.9.9-2.6ZM5 15l.7 1.8 1.8.7-1.8.7L5 20l-.7-1.8-1.8-.7 1.8-.7L5 15Z" />
+      </svg>
+    );
+
+    /* ---------------- BlurText ---------------- */
+    function BlurText({ text, className = "", delay = 100, justify = "center" }) {
+      const ref = useRef(null);
+      const [inView, setInView] = useState(false);
+      useEffect(() => {
+        const obs = new IntersectionObserver(([e]) => {
+          if (e.isIntersecting) { setInView(true); obs.disconnect(); }
+        }, { threshold: 0.1 });
+        if (ref.current) obs.observe(ref.current);
+        return () => obs.disconnect();
+      }, []);
+      const words = text.split(" ");
+      return (
+        <p ref={ref} className={className}
+           style={{ display: "flex", flexWrap: "wrap", justifyContent: justify, rowGap: "0.1em" }}>
+          {words.map((w, i) => (
+            <motion.span key={i}
+              initial={{ filter: "blur(10px)", opacity: 0, y: 50 }}
+              animate={inView ? {
+                filter: ["blur(10px)", "blur(5px)", "blur(0px)"],
+                opacity: [0, 0.5, 1],
+                y: [50, -5, 0],
+              } : {}}
+              transition={{ duration: 0.7, times: [0, 0.5, 1], ease: "easeOut", delay: (i * delay) / 1000 }}
+              style={{ display: "inline-block", marginRight: "0.28em" }}>
+              {w}
+            </motion.span>
+          ))}
+        </p>
+      );
+    }
+
+    const fadeUp = (delay) => ({
+      initial: { filter: "blur(10px)", opacity: 0, y: 20 },
+      animate: { filter: "blur(0px)", opacity: 1, y: 0 },
+      transition: { duration: 0.8, delay, ease: "easeOut" },
+    });
+    const inViewUp = (delay = 0) => ({
+      initial: { filter: "blur(10px)", opacity: 0, y: 30 },
+      whileInView: { filter: "blur(0px)", opacity: 1, y: 0 },
+      viewport: { once: true, amount: 0.2 },
+      transition: { duration: 0.8, delay, ease: "easeOut" },
+    });
+
+    /* ---------------- 3D tilt-обёртка ---------------- */
+    function Tilt({ children, className = "", max = 12 }) {
+      const x = useMotionValue(0.5), y = useMotionValue(0.5);
+      const rx = useSpring(useTransform(y, [0, 1], [max, -max]), { stiffness: 150, damping: 15 });
+      const ry = useSpring(useTransform(x, [0, 1], [-max, max]), { stiffness: 150, damping: 15 });
+      const onMove = (e) => {
+        const r = e.currentTarget.getBoundingClientRect();
+        x.set((e.clientX - r.left) / r.width);
+        y.set((e.clientY - r.top) / r.height);
+      };
+      const reset = () => { x.set(0.5); y.set(0.5); };
+      return (
+        <div style={{ perspective: 1000 }} className={className}>
+          <motion.div onPointerMove={onMove} onPointerLeave={reset}
+            style={{ rotateX: rx, rotateY: ry, transformStyle: "preserve-3d" }} className="h-full">
+            {children}
+          </motion.div>
+        </div>
+      );
+    }
+
+    /* ---------------- Navbar ---------------- */
+    const LINKS = [
+      ["Главная", "#home"], ["Работы", "#works"], ["Услуги", "#services"], ["Обо мне", "#about"], ["Контакты", "#contact"],
+    ];
+    function Navbar() {
+      return (
+        <nav className="fixed top-4 left-0 right-0 z-50 px-8 lg:px-16 flex items-center justify-between">
+          <a href="#home" className="liquid-glass rounded-full w-12 h-12 flex items-center justify-center">
+            <span className="font-heading italic text-white text-3xl leading-none -mt-1">д</span>
+          </a>
+          <div className="hidden md:flex items-center liquid-glass rounded-full px-1.5 py-1.5">
+            {LINKS.map(([l, h]) => (
+              <a key={l} href={h} className="px-3 py-2 text-sm font-medium text-white/90 font-body hover:text-white">{l}</a>
+            ))}
+            <a href="#contact" className="ml-1 flex items-center gap-1 bg-white text-[#d6336c] rounded-full px-4 py-2 text-sm font-semibold font-body whitespace-nowrap">
+              Записаться <ArrowUpRight className="h-4 w-4" />
+            </a>
+          </div>
+          <a href="#contact" className="md:hidden flex items-center gap-1 bg-white text-[#d6336c] rounded-full px-4 py-2.5 text-sm font-semibold font-body">
+            Записаться <ArrowUpRight className="h-4 w-4" />
+          </a>
+          <div className="hidden md:block w-12 h-12" />
+        </nav>
+      );
+    }
+
+    /* ---------------- Фото Дианы ---------------- */
+    function PhotoCard() {
+      return (
+        <motion.div {...fadeUp(0.6)} className="relative mx-auto w-full max-w-[400px]">
+          <Tilt max={10}>
+            <div className="liquid-glass rounded-[2.25rem] p-3">
+              <div className="relative rounded-[1.75rem] overflow-hidden aspect-[3/4]">
+                <img src="assets/diana.jpg" alt="Диана Морозова"
+                     className="absolute inset-0 w-full h-full object-cover" style={{ objectPosition: "50% 72%" }} />
+                <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-[#b0255c]/50 to-transparent" />
+                <div className="absolute left-4 right-4 bottom-4 liquid-glass-strong rounded-[1.25rem] px-4 py-3 flex items-center justify-between">
+                  <div>
+                    <div className="font-heading italic text-2xl leading-none">Диана Морозова</div>
+                    <div className="text-xs font-body font-light text-white/90 mt-1">nail-мастер · дизайн ногтей</div>
+                  </div>
+                  <div className="flex text-white"><StarIcon /><StarIcon /><StarIcon /><StarIcon /><StarIcon /></div>
+                </div>
+              </div>
+            </div>
+          </Tilt>
+          <motion.div animate={{ y: [0, -10, 0] }} transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute -top-4 -right-3 liquid-glass-strong rounded-full px-4 py-2 text-xs font-body font-semibold flex items-center gap-1.5">
+            <StarIcon /> 5.0 рейтинг
+          </motion.div>
+          <motion.div animate={{ y: [0, 10, 0] }} transition={{ duration: 5, repeat: Infinity, ease: "easeInOut" }}
+            className="absolute top-1/3 -left-6 liquid-glass-strong rounded-full px-4 py-2 text-xs font-body font-semibold">
+            💅 стерильно & уютно
+          </motion.div>
+        </motion.div>
+      );
+    }
+
+    /* ---------------- Hero ---------------- */
+    function Hero() {
+      return (
+        <section id="home" className="relative min-h-screen flex flex-col">
+          <Navbar />
+          <div className="flex-1 flex items-center pt-28 pb-10 px-6 md:px-12 lg:px-40">
+            <div className="w-full max-w-6xl mx-auto grid lg:grid-cols-[1.15fr_0.85fr] gap-14 items-center">
+              <div className="flex flex-col items-center lg:items-start text-center lg:text-left">
+                <motion.div {...fadeUp(0.4)} className="liquid-glass rounded-full flex items-center gap-2 p-1">
+                  <span className="bg-white text-[#d6336c] rounded-full px-3 py-1 text-xs font-semibold font-body">Новое</span>
+                  <span className="text-sm text-white/90 font-body pr-3">Открыта запись на ноябрь</span>
+                </motion.div>
+
+                <BlurText text="Искусство на кончиках пальцев"
+                  justify={null}
+                  className="mt-6 text-6xl md:text-7xl lg:text-[5.5rem] font-heading italic text-white leading-[0.85] max-w-2xl tracking-[-2px] text-shadow-soft justify-center lg:justify-start" />
+
+                <motion.p {...fadeUp(0.8)} className="mt-5 text-sm md:text-base text-white max-w-xl font-body font-light leading-snug">
+                  Привет! Я Диана Морозова — мастер маникюра. Создаю аккуратные, стойкие и нежные покрытия,
+                  которые подчёркивают ваш стиль. Безопасная стерилизация, премиальные материалы и дизайн любой сложности.
+                </motion.p>
+
+                <motion.div {...fadeUp(1.1)} className="flex items-center gap-6 mt-7">
+                  <a href="#contact" className="liquid-glass-strong rounded-full px-5 py-2.5 text-sm font-medium text-white font-body flex items-center gap-2">
+                    Записаться <ArrowUpRight className="h-5 w-5" />
+                  </a>
+                  <a href="#works" className="text-sm font-medium text-white font-body flex items-center gap-2">
+                    Смотреть работы <Play className="h-4 w-4" />
+                  </a>
+                </motion.div>
+
+                <motion.div {...fadeUp(1.3)} className="flex items-stretch gap-4 mt-9 flex-wrap justify-center lg:justify-start">
+                  {[
+                    { icon: <HeartIcon />, n: "500+", l: "Довольных клиенток" },
+                    { icon: <ClockIcon />, n: "3–4 нед", l: "Носка без сколов" },
+                  ].map((s) => (
+                    <div key={s.l} className="liquid-glass p-5 w-[200px] md:w-[220px] rounded-[1.25rem] flex flex-col justify-between gap-6 text-left">
+                      {s.icon}
+                      <div>
+                        <div className="font-heading italic text-white text-4xl tracking-[-1px] leading-none">{s.n}</div>
+                        <div className="text-xs text-white font-body font-light mt-2">{s.l}</div>
+                      </div>
+                    </div>
+                  ))}
+                </motion.div>
+              </div>
+
+              <PhotoCard />
+            </div>
+          </div>
+
+          {/* Бренды */}
+          <motion.div {...fadeUp(1.4)} className="flex flex-col items-center gap-4 pb-10 px-4">
+            <div className="liquid-glass rounded-full px-3.5 py-1 text-xs font-medium text-white font-body">
+              Работаю только на премиальных материалах
+            </div>
+            <div className="flex flex-wrap justify-center gap-x-12 md:gap-x-16 gap-y-2">
+              {["Luxio", "Kodi", "OPI", "CND", "TNL"].map((b) => (
+                <span key={b} className="font-heading italic text-white text-2xl md:text-3xl tracking-tight">{b}</span>
+              ))}
+            </div>
+          </motion.div>
+        </section>
+      );
+    }
+
+    /* ---------------- Работы ----------------
+       Чтобы добавить свои фото: положите их в папку assets/works/
+       и укажите путь в поле src, например: src: "assets/works/1.jpg"          */
+    const WORKS = [
+      { src: "", title: "Нюдовый френч", tag: "Гель-лак", colors: ["#f7d6dc", "#ffffff"] },
+      { src: "", title: "Ягодный глянец", tag: "Покрытие", colors: ["#b3124a", "#d61d5f"] },
+      { src: "", title: "Жемчужный блеск", tag: "Дизайн", colors: ["#fff0f4", "#f3c98b"] },
+      { src: "", title: "Бордо & золото", tag: "Дизайн", colors: ["#6e0f2e", "#f3c98b"] },
+      { src: "", title: "Молочный омбре", tag: "Омбре", colors: ["#fbe9ee", "#f2a7bd"] },
+      { src: "", title: "Розовый хром", tag: "Втирка", colors: ["#ff7fae", "#ffd1e1"] },
+      { src: "", title: "Миндаль классик", tag: "Наращивание", colors: ["#e9a990", "#f7d6dc"] },
+      { src: "", title: "Алый вечер", tag: "Гель-лак", colors: ["#ff1f4f", "#b3124a"] },
+    ];
+
+    function NailPlaceholder({ colors }) {
+      return (
+        <div className="absolute inset-0 flex items-end justify-center gap-2.5 pb-12"
+             style={{ background: `radial-gradient(circle at 50% 30%, ${colors[1]}55, transparent 70%)` }}>
+          {[0.78, 0.92, 1, 0.9, 0.7].map((h, i) => (
+            <motion.div key={i}
+              animate={{ y: [0, -6, 0] }}
+              transition={{ duration: 3, delay: i * 0.15, repeat: Infinity, ease: "easeInOut" }}
+              className="w-[13%] rounded-t-full rounded-b-[40%] shadow-lg"
+              style={{
+                height: `${h * 45}%`,
+                background: `linear-gradient(160deg, ${colors[1]} 0%, ${colors[0]} 55%, ${colors[0]} 100%)`,
+                boxShadow: "inset 3px 4px 6px rgba(255,255,255,.55), inset -2px -4px 8px rgba(0,0,0,.15), 0 10px 20px rgba(120,10,50,.25)",
+              }} />
+          ))}
+        </div>
+      );
+    }
+
+    function Works() {
+      return (
+        <section id="works" className="relative px-6 md:px-16 lg:px-40 pt-28 pb-16">
+          <div className="max-w-6xl mx-auto">
+            <motion.div {...inViewUp()} className="text-sm font-body text-white/80 mb-6">// Портфолио</motion.div>
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+              <BlurText text="Мои работы" justify="flex-start"
+                className="font-heading italic text-white text-6xl md:text-7xl lg:text-[6rem] leading-[0.9] tracking-[-2px] text-shadow-soft" />
+              <motion.p {...inViewUp(0.2)} className="text-sm text-white/90 font-body font-light max-w-sm leading-snug">
+                Каждый маникюр — маленькое произведение искусства. Здесь собраны мои любимые работы: от нежной классики до смелого дизайна.
+              </motion.p>
+            </div>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mt-14">
+              {WORKS.map((w, i) => (
+                <motion.div key={i} {...inViewUp((i % 4) * 0.1)}>
+                  <Tilt max={14}>
+                    <div className="liquid-glass rounded-[1.5rem] p-2 group cursor-pointer">
+                      <div className="relative aspect-[4/5] rounded-[1.1rem] overflow-hidden bg-white/5">
+                        {w.src
+                          ? <img src={w.src} alt={w.title} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 duration-700" />
+                          : <NailPlaceholder colors={w.colors} />}
+                        <span className="absolute top-3 left-3 liquid-glass-strong rounded-full px-3 py-1 text-[11px] font-body">{w.tag}</span>
+                      </div>
+                      <div className="px-2 pt-3 pb-2 flex items-center justify-between">
+                        <span className="font-heading italic text-xl md:text-2xl leading-none">{w.title}</span>
+                        <ArrowUpRight className="h-4 w-4 opacity-70" />
+                      </div>
+                    </div>
+                  </Tilt>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    /* ---------------- Услуги ---------------- */
+    const SERVICES = [
+      {
+        icon: <PolishIcon />, title: "Маникюр + покрытие", price: "от 2 000 ₽",
+        tags: ["Гель-лак", "Выравнивание", "Укрепление", "Уход"],
+        text: "Аппаратный или комбинированный маникюр с идеальным выравниванием и стойким покрытием до 4 недель.",
+      },
+      {
+        icon: <NailIcon />, title: "Наращивание", price: "от 3 000 ₽",
+        tags: ["Миндаль", "Квадрат", "Любая длина", "Коррекция"],
+        text: "Прочные и лёгкие ногти любой формы и длины. Натуральный вид и комфорт с первого дня.",
+      },
+      {
+        icon: <SparkleIcon />, title: "Дизайн", price: "от 100 ₽ / ноготь",
+        tags: ["Френч", "Втирка", "Стразы", "Роспись"],
+        text: "От минималистичного френча до авторской росписи, хрома и кристаллов — воплощу любую идею.",
+      },
+    ];
+
+    function Services() {
+      return (
+        <section id="services" className="relative px-8 md:px-16 lg:px-40 pt-24 pb-16 min-h-screen flex flex-col">
+          <div className="max-w-6xl mx-auto w-full">
+            <motion.div {...inViewUp()} className="text-sm font-body text-white/80 mb-6">// Услуги</motion.div>
+            <motion.h2 {...inViewUp(0.1)} className="font-heading italic text-white text-6xl md:text-7xl lg:text-[6rem] leading-[0.9] tracking-[-2px] text-shadow-soft">
+              Маникюр<br />с любовью
+            </motion.h2>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16">
+              {SERVICES.map((s, i) => (
+                <motion.div key={s.title} {...inViewUp(i * 0.15)}>
+                  <Tilt max={8} className="h-full">
+                    <div className="liquid-glass rounded-[1.25rem] p-6 min-h-[360px] h-full flex flex-col">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="liquid-glass rounded-[0.75rem] w-11 h-11 flex items-center justify-center shrink-0">{s.icon}</div>
+                        <div className="flex flex-wrap justify-end gap-1.5 max-w-[70%]">
+                          {s.tags.map((t) => (
+                            <span key={t} className="liquid-glass rounded-full px-3 py-1 text-[11px] text-white/90 font-body whitespace-nowrap">{t}</span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex-1" />
+                      <div className="mt-6">
+                        <div className="text-xs font-body font-semibold text-white/90 mb-2">{s.price}</div>
+                        <h3 className="font-heading italic text-white text-3xl md:text-4xl tracking-[-1px] leading-none">{s.title}</h3>
+                        <p className="mt-3 text-sm text-white/90 font-body font-light leading-snug max-w-[32ch]">{s.text}</p>
+                      </div>
+                    </div>
+                  </Tilt>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section>
+      );
+    }
+
+    /* ---------------- Обо мне ---------------- */
+    function About() {
+      return (
+        <section id="about" className="relative px-6 md:px-16 lg:px-40 py-20">
+          <motion.div {...inViewUp()} className="max-w-4xl mx-auto liquid-glass rounded-[2rem] p-8 md:p-14 text-center">
+            <div className="text-sm font-body text-white/80 mb-6">// Обо мне</div>
+            <p className="font-heading italic text-3xl md:text-5xl leading-[1.05] tracking-[-1px] text-white">
+              «Я верю, что ухоженные руки — это маленький ежедневный повод улыбнуться. Моя задача — чтобы вы уходили
+              от меня с идеальным маникюром и отличным настроением».
+            </p>
+            <div className="mt-8 font-body text-sm text-white/90">— Диана Морозова</div>
+          </motion.div>
+        </section>
+      );
+    }
+
+    /* ---------------- Контакты ---------------- */
+    function Contact() {
+      const links = [
+        ["Telegram", "https://t.me/"],
+        ["Instagram", "https://instagram.com/"],
+        ["WhatsApp", "https://wa.me/"],
+      ];
+      return (
+        <section id="contact" className="relative px-6 md:px-16 lg:px-40 pt-16 pb-10 min-h-[80vh] flex flex-col">
+          <div className="flex-1 flex flex-col items-center justify-center text-center">
+            <motion.div {...inViewUp()} className="liquid-glass rounded-full px-3.5 py-1 text-xs font-medium font-body">
+              Свободные окошки разлетаются быстро ✨
+            </motion.div>
+            <BlurText text="Запишитесь на маникюр"
+              className="mt-6 font-heading italic text-white text-6xl md:text-7xl lg:text-[6rem] leading-[0.9] tracking-[-2px] max-w-3xl text-shadow-soft" />
+            <motion.p {...inViewUp(0.3)} className="mt-5 text-sm md:text-base font-body font-light max-w-lg">
+              Напишите мне в любой удобный мессенджер — подберём время, форму и дизайн вашей мечты.
+            </motion.p>
+            <motion.div {...inViewUp(0.45)} className="flex flex-wrap justify-center gap-3 mt-8">
+              {links.map(([l, h], i) => (
+                <a key={l} href={h} target="_blank" rel="noreferrer"
+                   className={(i === 0 ? "bg-white text-[#d6336c] " : "liquid-glass-strong text-white ") + "rounded-full px-6 py-3 text-sm font-semibold font-body flex items-center gap-2"}>
+                  {l} <ArrowUpRight className="h-4 w-4" />
+                </a>
+              ))}
+            </motion.div>
+          </div>
+          <footer className="mt-16 flex flex-col md:flex-row items-center justify-between gap-3 text-xs font-body text-white/80">
+            <span className="font-heading italic text-xl text-white">Диана Морозова</span>
+            <span>© {new Date().getFullYear()} · Маникюр & nail-дизайн</span>
+          </footer>
+        </section>
+      );
+    }
+
+    function App() {
+      return (
+        <main className="font-body">
+          <Hero />
+          <Works />
+          <Services />
+          <About />
+          <Contact />
+        </main>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+  </script>
+</body>
+</html>
